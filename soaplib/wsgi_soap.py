@@ -233,9 +233,6 @@ class WSGISoapApp(object):
             length = environ.get("CONTENT_LENGTH")
             body = input.read(int(length))
 
-            methodname = environ.get("HTTP_SOAPACTION")
-
-            debug('\033[92m'+ methodname +'\033[0m')
             debug(body)
 
             body = collapse_swa(environ.get("CONTENT_TYPE"), body)
@@ -251,11 +248,13 @@ class WSGISoapApp(object):
                 methodname = payload.tag
             else:
                 # check HTTP_SOAPACTION
-                methodname = environ.get("HTTP_SOAPACTION")
+                methodname = environ.get("HTTP_SOAPACTION", '')
                 if methodname.startswith('"') and methodname.endswith('"'):
                     methodname = methodname[1:-1]
                 if methodname.find('/') >0:
                     methodname = methodname.split('/')[1]
+
+            debug('\033[92m'+ methodname +'\033[0m')
 
             request.header = header
 
