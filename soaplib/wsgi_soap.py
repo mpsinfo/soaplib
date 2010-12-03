@@ -175,7 +175,7 @@ class WSGISoapApp(object):
         @param a callable that begins the response message
         @returns the string representation of the soap call
         '''
-        methodname = ''
+        methodname = None
         try:
             reset_request()
             request.environ = environ
