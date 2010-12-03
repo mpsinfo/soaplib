@@ -145,7 +145,7 @@ def from_soap(xml_string):
     '''
     Parses the xml string into the header and payload
     '''
-    root, xmlids = ElementTree.XMLID(xml_string.encode())
+    root, xmlids = ElementTree.XMLID(xml_string)
     if xmlids:
         resolve_hrefs(root, xmlids)
     body = None
