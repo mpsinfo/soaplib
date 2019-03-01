@@ -28,7 +28,6 @@ class NamespaceLookup(object):
         self.nsmap = {
             'xs': 'http://www.w3.org/2001/XMLSchema',
             'xsi': 'http://www.w3.org/1999/XMLSchema-instance',
-            'plnk': 'http://schemas.xmlsoap.org/ws/2003/05/partner-link/',
         }
         if wsdl_map:
             self.nsmap['soap'] = 'http://schemas.xmlsoap.org/wsdl/soap/'

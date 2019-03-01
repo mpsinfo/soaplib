@@ -284,24 +284,6 @@ class SoapServiceBase(object):
                 opOutput.set('name', method.outMessage.typ)
                 opOutput.set('message', 'tns:%s' % method.outMessage.typ)
 
-        # make partner link
-        plink = create_xml_subelement(root,
-            nsmap.get('plnk') + 'partnerLinkType')
-        plink.set('name', serviceName)
-        role = create_xml_subelement(plink,
-            nsmap.get('plnk') + 'role')
-        role.set('name', serviceName)
-        plinkPortType = create_xml_subelement(role,
-            nsmap.get('plnk') + 'portType')
-        plinkPortType.set('name', 'tns:%s' % serviceName)
-
-        if hasCallbacks:
-            role = create_xml_subelement(plink, nsmap.get('plnk') + 'role')
-            role.set('name', '%sCallback' % serviceName)
-            plinkPortType = create_xml_subelement(role,
-                nsmap.get('plnk') + 'portType')
-            plinkPortType.set('name', 'tns:%sCallback' % serviceName)
-
         self._add_bindings_for_methods(root, serviceName, methods, nsmap)
 
         service = create_xml_subelement(root, 'service')
