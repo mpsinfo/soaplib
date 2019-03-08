@@ -36,7 +36,9 @@ bin
 lib
 include
 develop-eggs
+venv
 .installed.cfg
+.venv
 
 #netbeans cruft
 nbproject
