@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
 
-VERSION = '0.8.4'
+VERSION = '0.9.0'
 LONG_DESC = """\
 This is a simple, easily extendible soap library that provides several useful
 tools for creating and publishing soap web services in python.  This package
@@ -14,7 +15,7 @@ and a client library.
 This prokect now uses lxml as it's XML API, providing full namespace support.
 """
 
-setup(name='soaplib',
+setup(name='soaplib-mpsinfo',
     version=VERSION,
     description="A simple library for writing soap web services",
     long_description=LONG_DESC,
@@ -27,10 +28,10 @@ setup(name='soaplib',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     keywords='soap',
-    author='Soaplib Contributors',
-    author_email='soap@python.org',
-    maintainer = 'Burak Arslan',
-    maintainer_email = 'burak-soaplib@arskom.com.tr',
+    author='MPS Informática Ltda.',
+    author_email='gti@mps.com.br',
+    maintainer = 'Carlos Alberto Costa Beppler',
+    maintainer_email = 'carlos.beppler@mps.com.br',
     url='https://github.com/mpsinfo/soaplib/tree/master',
     license='LGPL',
     packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
