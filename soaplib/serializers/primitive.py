@@ -36,6 +36,7 @@ string_encoding = 'utf-8'
 _date_pattern = (r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})')
 _datetime_pattern = (r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})[T ]'
     r'(?P<hr>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2})(?P<fractional_sec>\.\d+)?')
+_date_re = re.compile(_date_pattern)
 _local_re = re.compile(_datetime_pattern)
 _utc_re = re.compile(_datetime_pattern + 'Z')
 _offset_re = re.compile(_datetime_pattern +
@@ -90,7 +91,7 @@ def _element_to_date(element):
            ("year", "month", "day")]
         return datetime.date(year, month, day)
     
-    match = _date_pattern.match(text)
+    match = _date_re.match(text)
     if match:
         return parse_date(match)
     raise Exception("Date [%s] not in known format" % text)
