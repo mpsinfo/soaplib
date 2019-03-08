@@ -16,6 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
 
+import codecs
 import new
 import traceback
 import os.path as path
@@ -138,7 +139,6 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             (messages are sometimes held in a seperate document, for example).
             Recusively calls WsdlParser to descend through imports
         """
-        reimport = 0
         for imp in document.findall('%simport' % wsdlqname):
             url = str(imp.get('location'))
             #work out if relative or absolute url
@@ -163,7 +163,6 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             containing the parsed schema. 
             
         """
-        location = None
         for t in document.findall(wsdlqname+"types"):
             url = None            
             for s in t.findall(schqname+"schema"):
@@ -236,22 +235,23 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             name = binding.get('name')
             type = self.striptype(binding.get('type'))
             soapbinding = binding.find(soapqname+'binding')
-            bindingob = Binding(name, soapbinding.get('style'), soapbinding.get('transport'), type)
-            self.bindingcat[name] = bindingob
-            for operation in binding.findall(wsdlqname+'operation'):
-                #get soap action
-                opname = operation.get('name')
-                soapoperation = operation.find(soapqname+'operation')
-                soapaction = soapoperation.get('soapAction')
-                #read rest
-                input = operation.find(wsdlqname+'input')
-                output = operation.find(wsdlqname+'output')
-                faults = []
-                for fault in operation.findall(wsdlqname+'fault'):
-                    faults.append(fault)
-                #stash back
-                opob = BindingOperation(opname, soapaction, input, output, faults)
-                bindingob.operations[opname] = opob        
+            if soapbinding is not None:
+                bindingob = Binding(name, soapbinding.get('style'), soapbinding.get('transport'), type)
+                self.bindingcat[name] = bindingob
+                for operation in binding.findall(wsdlqname+'operation'):
+                    #get soap action
+                    opname = operation.get('name')
+                    soapoperation = operation.find(soapqname+'operation')
+                    soapaction = soapoperation.get('soapAction')
+                    #read rest
+                    input = operation.find(wsdlqname+'input')
+                    output = operation.find(wsdlqname+'output')
+                    faults = []
+                    for fault in operation.findall(wsdlqname+'fault'):
+                        faults.append(fault)
+                    #stash back
+                    opob = BindingOperation(opname, soapaction, input, output, faults)
+                    bindingob.operations[opname] = opob        
     
     def striptype(self, typestr):
         """ 
@@ -294,21 +294,28 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             #messages can be empty
             inparams = [(k,v) for (k,v) in intype.types.__dict__.items() 
                     if not k.startswith('_')]
-        outmessagexml = operation.output
-        outmessage = self.messagecat.get(self.striptype(outmessagexml.get('message')), None)
         outparams = []
-        #messages are either based on types or elements        
-        if outmessage.element is not None:
-            outtype = self.elements[outmessage.element].type
-        else:
-            outtype = self.ctypes.get(outmessage.ctype, None)
+        outtype = None
+        outmessage = None
+        outmessagexml = operation.output
+        if outmessagexml is not None:
+            outmessage = self.messagecat.get(self.striptype(outmessagexml.get('message')), None)
+            #messages are either based on types or elements        
+            if outmessage.element is not None:
+                outtype = self.elements[outmessage.element].type
+            else:
+                outtype = self.ctypes.get(outmessage.ctype, None)
         if outtype is not None:
-            (returnname, returntypename, returntype) = self.unrollreturn(outtype)
-            outparams = [(returnname, returntype)]
+            unrolledouttype = self.unrollreturn(outtype)
+            if unrolledouttype is not None:
+                (returnname, _, returntype) = self.unrollreturn(outtype)
+                outparams = [(returnname, returntype)]
         ns = getTNS(service)
         insoapmessage = soap.Message(inmessage.name, inparams, ns=ns, typ=inmessage.typ)
-        outsoapmessage = soap.Message(outmessage.name, outparams, ns=ns, 
-            typ=outmessage.typ)
+        if outmessage is None:
+            outsoapmessage = None
+        else:
+            outsoapmessage = soap.Message(outmessage.name, outparams, ns=ns, typ=outmessage.typ)
         def newmethod(*args, **kwargs):
             if kwargs.has_key('_soap_descriptor'):
                 return soap.MethodDescriptor(operation.name, operation.name, insoapmessage,
@@ -330,7 +337,8 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             if not k.startswith('_'):
                 return (k, v.print_class(), v)
         #if we get here we have no types
-        raise Exception('No types found in %s' % k)
+        return None
+        #raise Exception('No types found in %s' % k)
 
     def tofile(self, filename, config):
         """
@@ -342,9 +350,10 @@ during the parse: \n%s" % "\n".join(self.unsupported)
         template = Template(headerstr)
         tempdict = dict(xsdmodule = xsdmodule)
         #write out bindings        
-        f = open(filename, 'w')
+        f = codecs.open(filename, 'w', 'utf-8')
+        f.write('# -*- coding: utf-8 -*-')
         f.write(template.substitute(tempdict))
-        for (k,v) in self.services.items():
+        for (_,v) in self.services.items():
             #instantiate a service so we can extract method descriptors from it
             self.writeservice(v, f)
         f.close()
@@ -366,16 +375,17 @@ during the parse: \n%s" % "\n".join(self.unsupported)
         for method in service._soap_methods:
             inmsgparams = method.inMessage.params
             paramlist = [self.typetostring(v) for (k,v) in inmsgparams]
-            outmsgparams = method.outMessage.params
+            outmsgparams = method.outMessage.params if method.outMessage else []
             if len(outmsgparams) > 0:
                 returntype = outmsgparams[0]
                 paramlist += ['_returns=%s' % self.typetostring(returntype[1])]
                 if returntype[0] != '%sResult' % method.name:
                     paramlist += ['_outVariableName="%s"' % returntype[0]]
             if method.inMessage.name != method.name:
-                paramlist += ['_inMessage=%s' % method.inMessage.name]
-            if method.outMessage.name != '%sResponse'%method.name:
-                paramlist += ['_outMessage=%s' % method.outMessage.name]
+                paramlist += ['_inMessage="%s"' % method.inMessage.name]
+            if method.outMessage is not None:
+                if method.outMessage.name != '%sResponse'%method.name:
+                    paramlist += ['_outMessage="%s"' % method.outMessage.name]
             f.write("%s@soapmethod(%s)\n" % (
                 self.spacer, ', '.join(paramlist)
             ))
@@ -432,7 +442,7 @@ def run():
     parser.add_option("-m", "--mapping", dest="mapping",
         help="Specify any xsd to soaplib type mappings(space seperated).", 
         metavar="MAPPING", default=None)   
-    (options, args) = parser.parse_args()
+    (options, _) = parser.parse_args()
     if options.filename is None:
         url = options.url
     else:
@@ -447,7 +457,8 @@ def run():
             builtins[name] = serializers[value]
     wp = WSDLParser.from_url(url)
     #write out xsd
-    f = open(path.abspath(options.schoutput), 'w')
+    f = codecs.open(path.abspath(options.schoutput), 'w', 'utf8')
+    f.write('# -*- coding: utf-8 -*-\n')
     wp.tps[0].write_imports(f)
     for tp in wp.tps:
         tp.write_body(f)

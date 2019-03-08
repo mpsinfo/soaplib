@@ -16,10 +16,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #
 
+import codecs
 import new
 import inspect
 import urllib2 as ulib
 import os.path as path
+import traceback
 
 from soaplib.etimport import ElementTree
 from soaplib.serializers.clazz import ClassSerializer, ClassSerializerMeta
@@ -83,7 +85,7 @@ class HierDict(dict):
     def __getitem__(self, name):
         try:
             return super(HierDict,self).__getitem__(name)
-        except KeyError, e:
+        except KeyError:
             if self._parent is None:
                 raise
             return self._parent[name]
@@ -151,13 +153,20 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             klass = self.get_element_class(element.get('name'), typename)
             klass.type = typ
         else:
-            #element contains an inline complex type.
-            typelist = []
-            for child in element.getchildren():
-                typelist += self.extract_complex(child, element)
-            for (typename, typevalue) in typelist:
+            #element can contains an inline complex type.
+            children = element.getchildren()
+            if children:
+                typelist = []
+                for child in element.getchildren():
+                    typelist += self.extract_complex(child, element)
+                for (typename, typevalue) in typelist:
+                    klass = self.get_element_class(element.get('name'), typename)
+                    klass.type = typevalue
+            else:
+                typename = element.get('name')
+                typ = self.get_class(typename)
                 klass = self.get_element_class(element.get('name'), typename)
-                klass.type = typevalue
+                klass.type = typ
         return [(None, klass)]
 
     def extract_complex(self, element, parent=None, inuse=False):
@@ -191,7 +200,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                 children = element.xpath('./xs:sequence/xs:element', namespaces={'xs': schnamespace})
                 children.extend(element.xpath('./xs:choice/xs:element', namespaces={'xs': schnamespace}))
                 if len(children) == 1 and (children[0].get('maxOccurs') == 'unbounded' or 
-                    children[0].get('maxOccurs') > 0):
+                    children[0].get('maxOccurs') > '1'):
                     child = children[0]
                     typelist = self.extract_complex(child, inuse=True)
                     #items in a soaplib Array are named according to their datatype, 
@@ -201,8 +210,8 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                     if childtype[0] == childtype[1].serializer.get_datatype():
                         #we have an array so tag it for repointing after we've finished parsing.
                         klass.arraytag = (childtype[0], Array(childtype[1].serializer))
-            except Exception, e:
-                print e
+            except Exception:
+                traceback.print_exc()
             typelist = []
             for child in element.getchildren():
                 typelist += self.extract_complex(child, inuse=True)
@@ -232,29 +241,33 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             etype = element.get('type')
             #cope with nested ctypes
             if etype is None:
-                child = element.getchildren()[0]
-                typelist = self.extract_complex(child, inuse=True, parent=element)
-                try:                
-                    (typename, typevalue) = typelist[0]
-                    if minoccurs == '0':
-                        typevalue = Optional(typevalue)
-                    return [(element.get('name'), typevalue)]
-                except:
-                    return []
+                children = element.getchildren()
+                if children:
+                    child = children[0]
+                    typelist = self.extract_complex(child, inuse=True, parent=element)
+                    try:                
+                        (typename, typevalue) = typelist[0]
+                        if minoccurs == '0':
+                            typevalue = Optional(typevalue)
+                        return [(element.get('name'), typevalue)]
+                    except:
+                        return []
+            #if etype is None use Any built-in else
             #use qualify_type to search the built-ins using a qname
-            #print builtins
-            if self.qualify_type(etype) in builtins:
+            if etype is None:
+                serializer = Any
+            elif self.qualify_type(etype) in builtins:
                 serializer = builtins[self.qualify_type(etype)]
             else:
                 try:
                     serializer = self.get_class(self.extract_typename(etype), inuse=True)
-                except Exception,e:
-                    print "Exception: %s" % e
+                except:
                     print "Could not get serializer for type: %s" % etype
+                    traceback.print_exc()
                     return []
             #check for array
             maxoccurs = element.get('maxOccurs')
-            if maxoccurs > 0 or maxoccurs == 'unbounded':
+            if maxoccurs > '1' or maxoccurs == 'unbounded':
                 return [(element.get('name'), Repeating(serializer))]
             else:
                 if minoccurs == '0':
@@ -277,7 +290,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             else:
                 try:
                     serializer = self.get_class(self.extract_typename(etype))
-                except Exception,e:
+                except Exception:
                     return []
             return [(element.get('name'), serializer)]
         elif element.tag == scattr:
@@ -350,7 +363,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             This step finds all complextypes that are just Arrays such as StringArray
             and treats them correct e.g. Array(String)
         """
-        for (k,v) in self.ctypes.items():
+        for (_,v) in self.ctypes.items():
             for t in [t for t in dir(v.types) if not t.startswith('_')]:
                 value = getattr(v.types, t)
                 if hasattr(value, 'arraytag'):
@@ -364,7 +377,8 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             Write out a python file mapping the parsed xmlschema
             to filename.
         """
-        f = open(filename, 'w')
+        f = codecs.open(filename, 'w', 'utf8')
+        f.write('# -*- coding: utf-8 -*-\n')
         self.write_imports(f)
         self.write_body(f)
         f.close()
@@ -375,7 +389,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             classes to prevent repeats.
         """
         writedict = {}
-        for (k,v) in self.ctypes.items():
+        for (_,v) in self.ctypes.items():
             self.write_class(writedict, v, f)
         self.write_elements(f)
     
@@ -485,7 +499,7 @@ def run():
                   help="output filename.", metavar="OUTPUT", default='xsdtypes.py')
     parser.add_option("-m", "--mapping", dest="mapping",
                   help="Specify any xsd to soaplib type mappings(space seperated).", metavar="MAPPING", default=None)
-    (options, args) = parser.parse_args()
+    (options, _) = parser.parse_args()
     if options.filename is None:
         url = options.url
     else:
