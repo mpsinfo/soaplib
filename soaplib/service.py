@@ -61,13 +61,10 @@ def soapmethod(*params, **kparams):
                     in_params = [(_inVariableNames.get(param_names[i],
                                   param_names[i]), params[i])
                                  for i in range(0, len(params))]
-                except IndexError, e:
-                    print f.func_name
-                    raise Exception("%s has parameter numbers mismatching" %
-                        f.func_name)
+                except IndexError:
+                    raise Exception("%s has parameter numbers mismatching" % f.func_name)
 
-                in_message = Message(_inMessage, in_params, ns=ns,
-                    typ=_inMessage)
+                in_message = Message(_inMessage, in_params, ns=ns, typ=_inMessage)
 
                 # output message  
                 out_params = []
