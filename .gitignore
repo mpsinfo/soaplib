@@ -42,3 +42,6 @@ venv
 
 #netbeans cruft
 nbproject
+
+#vscode cruft
+.vscode
