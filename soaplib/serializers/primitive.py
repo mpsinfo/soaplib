@@ -350,6 +350,55 @@ class Integer(BasePrimitive):
     def add_to_schema(cls, added_params, nsmap):
         pass
 
+class Int(BasePrimitive):
+
+    @classmethod
+    @nillable
+    def to_xml(cls, value, name='retval', nsmap=ns):
+        e = _generic_to_xml(str(value), name, cls, nsmap)
+        return e
+
+    @classmethod
+    def from_xml(cls, element):
+        return _element_to_integer(element)
+
+    @classmethod
+    def get_datatype(cls, nsmap=None):
+        return _get_datatype(cls, 'int', nsmap)
+
+    @classmethod
+    def get_namespace_id(cls):
+        return 'xs'
+
+    @classmethod
+    def add_to_schema(cls, added_params, nsmap):
+        pass
+
+
+class Long(BasePrimitive):
+
+    @classmethod
+    @nillable
+    def to_xml(cls, value, name='retval', nsmap=ns):
+        e = _generic_to_xml(str(value), name, cls, nsmap)
+        return e
+
+    @classmethod
+    def from_xml(cls, element):
+        return _element_to_integer(element)
+
+    @classmethod
+    def get_datatype(cls, nsmap=None):
+        return _get_datatype(cls, 'long', nsmap)
+
+    @classmethod
+    def get_namespace_id(cls):
+        return 'xs'
+
+    @classmethod
+    def add_to_schema(cls, added_params, nsmap):
+        pass
+
 class Decimal(BasePrimitive):
 
     @classmethod
