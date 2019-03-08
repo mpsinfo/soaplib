@@ -23,7 +23,7 @@ import os.path as path
 
 from soaplib.etimport import ElementTree
 from soaplib.serializers.clazz import ClassSerializer, ClassSerializerMeta
-from soaplib.serializers.primitive import String, DateTime, Date, Integer, Boolean, Float, Array, Any, Repeating, Optional, Decimal
+from soaplib.serializers.primitive import String, DateTime, Date, Integer, Int, Long, Boolean, Float, Array, Any, Repeating, Optional, Decimal
 from soaplib.serializers.binary import Attachment
 
 schnamespace = 'http://www.w3.org/2001/XMLSchema'
@@ -40,13 +40,15 @@ scelement = '%selement' % schqname
 scattr = '%sattribute' % schqname
 scany = '%sany' % schqname
 
-builtinobj = [String, DateTime, Date, Integer, Decimal, Boolean, Float, Array, Any, Attachment]
+builtinobj = [String, DateTime, Date, Integer, Int, Long, Decimal, Boolean, Float, Array, Any, Attachment]
 
 serializers = {
     'String': String,
     'DateTime': DateTime,
     'Date': Date,
     'Integer': Integer,
+    'Int': Int,
+    'Long': Long,
     'Decimal': Decimal,
     'Boolean': Boolean,
     'Float': Float,
@@ -57,7 +59,9 @@ serializers = {
 
 builtins = {
     '%sstring' % schqname: String,
-    '%sint' % schqname: Integer,
+    '%sinteger' % schqname: Integer,
+    '%sint' % schqname: Int,
+    '%slong' % schqname: Long,
     '%sdecimal' % schqname: Decimal,
     '%sdateTime' % schqname: DateTime,
     '%sdate' % schqname: Date,

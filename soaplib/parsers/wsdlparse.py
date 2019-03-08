@@ -440,6 +440,7 @@ def run():
     if url is None:
         return parser.error("You must provide either a url or filename.")
     if options.mapping is not None:
+        from soaplib.parsers.typeparse import builtins, serializers
         mappings = options.mapping.split(' ')
         for mapping in mappings:
             (name, value) = mapping.split('=')
