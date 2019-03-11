@@ -38,7 +38,7 @@ soapqname = "{%s}" % soapns
 
 headerstr = '''
 from soaplib.serializers.clazz import ClassSerializer
-from soaplib.serializers.primitive import String, DateTime, Date, Integer, Boolean, Float, Array, Any, Decimal
+from soaplib.serializers.primitive import String, DateTime, Date, Integer, Int, Long, Boolean, Float, Array, Any, Decimal, Optional
 from soaplib.serializers.binary import Attachment
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 from soaplib.service import soapmethod
@@ -271,7 +271,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             and put the nearly built services in self.services
         """
         for binding in self.bindingcat.values():
-            service = new.classobj(binding.name, (SimpleWSGISoapApp, object), {})
+            service = new.classobj(binding.name, (SimpleWSGISoapApp, object), { '__tns__': self.tns })
             self.services[binding.name] = service
             port = self.portcat[binding.type]
             for operation in port.operations.values():
@@ -375,6 +375,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
         #instantiate servcls so we can extract its MethodDescriptors
         service = servcls()
         f.write("class %s(SimpleWSGISoapApp):\n" % servcls.__name__)
+        f.write('%s__tns__ = "%s"\n\n' % (self.spacer, servcls.__tns__))
         for method in service._soap_methods:
             inmsgparams = method.inMessage.params
             paramlist = [self.typetostring(v) for (k,v) in inmsgparams]
