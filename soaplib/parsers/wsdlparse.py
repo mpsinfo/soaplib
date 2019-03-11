@@ -275,9 +275,10 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             self.services[binding.name] = service
             port = self.portcat[binding.type]
             for operation in port.operations.values():
-                self.buildsoapmethod(service, operation)
+                binding_operation = binding.operations[operation.name]
+                self.buildsoapmethod(service, operation, binding_operation)
                 
-    def buildsoapmethod(self, service, operation):
+    def buildsoapmethod(self, service, operation, binding_operation):
         """
             build a new soapmethod from the parsed operation and
             attach it to the service object.
@@ -296,7 +297,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             inparams = []
             keys = intype.types_ordered
             for k in keys:
-                inparams.append((k, intype.types.__dict__[k]))
+                inparams.append((k, getattr(intype.types, k)))
         outparams = []
         outtype = None
         outmessage = None
@@ -321,8 +322,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             outsoapmessage = soap.Message(outmessage.name, outparams, ns=ns, typ=outmessage.typ)
         def newmethod(*args, **kwargs):
             if kwargs.has_key('_soap_descriptor'):
-                return soap.MethodDescriptor(operation.name, operation.name, insoapmessage,
-                        outsoapmessage, '', False, False, False)
+                return soap.MethodDescriptor(operation.name, binding_operation.soapaction, insoapmessage, outsoapmessage, '', False, False, False)
         newmethod.func_name = operation.name
         newmethod._is_soap_method = True
         newmethod.__doc__ = operation.documentation
@@ -341,7 +341,6 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                 return (k, v.print_class(), v)
         #if we get here we have no types
         return None
-        #raise Exception('No types found in %s' % k)
 
     def tofile(self, filename, config):
         """
@@ -385,11 +384,13 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                 paramlist += ['_returns=%s' % self.typetostring(returntype[1])]
                 if returntype[0] != '%sResult' % method.name:
                     paramlist += ['_outVariableName="%s"' % returntype[0]]
-            if method.inMessage.name != method.name:
-                paramlist += ['_inMessage="%s"' % method.inMessage.name]
+            if method.name != method.soapAction:
+                paramlist += ['_soapAction="%s"' % method.soapAction]
+            if method.inMessage.typ != method.name:
+                paramlist += ['_inMessage="%s"' % method.inMessage.typ]
             if method.outMessage is not None:
-                if method.outMessage.name != '%sResponse'%method.name:
-                    paramlist += ['_outMessage="%s"' % method.outMessage.name]
+                if method.outMessage.typ != '%sResponse'%method.name:
+                    paramlist += ['_outMessage="%s"' % method.outMessage.typ]
             inkeywords = dict((('_' + k, k) for (k, _) in inmsgparams if keyword.iskeyword(k)))
             if inkeywords:
                 paramlist += [ '_inVariableNames = %s' % inkeywords]
@@ -397,7 +398,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                 self.spacer, ', '.join(paramlist)
             ))
             arglist = ['self']
-            arglist += [ k if not keyword.iskeyword(k) else '_' + k  for (k,v) in inmsgparams ]
+            arglist += [k if not keyword.iskeyword(k) else '_' + k  for (k,v) in inmsgparams]
             f.write("%sdef %s(%s):\n" % (
                 self.spacer, method.name,
                 ", ".join(arglist)
