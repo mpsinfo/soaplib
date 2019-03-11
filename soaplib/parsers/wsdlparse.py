@@ -377,7 +377,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
         f.write('%s__tns__ = "%s"\n\n' % (self.spacer, servcls.__tns__))
         for method in service._soap_methods:
             inmsgparams = method.inMessage.params
-            paramlist = [self.typetostring(v) for (k,v) in inmsgparams]
+            paramlist = [self.typetostring(v) for (_, v) in inmsgparams]
             outmsgparams = method.outMessage.params if method.outMessage else []
             if len(outmsgparams) > 0:
                 returntype = outmsgparams[0]
@@ -386,10 +386,12 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                     paramlist += ['_outVariableName="%s"' % returntype[0]]
             if method.name != method.soapAction:
                 paramlist += ['_soapAction="%s"' % method.soapAction]
-            if method.inMessage.typ != method.name:
+            typ = self.striptype(method.name)
+            if method.inMessage.typ != typ:
                 paramlist += ['_inMessage="%s"' % method.inMessage.typ]
             if method.outMessage is not None:
-                if method.outMessage.typ != '%sResponse'%method.name:
+                typ = self.striptype('%sResponse'%method.name)
+                if method.outMessage.typ != typ:
                     paramlist += ['_outMessage="%s"' % method.outMessage.typ]
             inkeywords = dict((('_' + k, k) for (k, _) in inmsgparams if keyword.iskeyword(k)))
             if inkeywords:
