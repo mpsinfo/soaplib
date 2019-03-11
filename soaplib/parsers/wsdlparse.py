@@ -395,15 +395,14 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                     paramlist += ['_outMessage="%s"' % method.outMessage.typ]
             inkeywords = dict((('_' + k, k) for (k, _) in inmsgparams if keyword.iskeyword(k)))
             if inkeywords:
-                paramlist += [ '_inVariableNames = %s' % inkeywords]
+                paramlist += ['_inVariableNames = %s' % inkeywords]
             f.write("%s@soapmethod(%s)\n" % (
                 self.spacer, ', '.join(paramlist)
             ))
             arglist = ['self']
             arglist += [k if not keyword.iskeyword(k) else '_' + k  for (k,v) in inmsgparams]
             f.write("%sdef %s(%s):\n" % (
-                self.spacer, method.name,
-                ", ".join(arglist)
+                self.spacer, method.name, ", ".join(arglist)
             ))
             doc = getattr(getattr(service, method.name, None), '__doc__', None)
             if doc is not None:
