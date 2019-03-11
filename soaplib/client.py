@@ -143,7 +143,7 @@ class SimpleSoapClient(object):
             'Content-type': 'text/xml; charset="UTF-8"',
             'Accept': ('application/soap+xml, application/dime, '
                                                 'multipart/related, text/*'),
-            'User-Agent': 'Soaplib/0.8.2',
+            'User-Agent': 'Soaplib/0.9',
             'SOAPAction': methodName,
         }
 
