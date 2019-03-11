@@ -34,14 +34,17 @@ from soaplib.etimport import ElementTree
 string_encoding = 'utf-8'
 
 _date_pattern = (r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})')
-_datetime_pattern = (r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})[T ]'
-    r'(?P<hr>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2})(?P<fractional_sec>\.\d+)?')
+_datetime_pattern = (
+    r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})'
+    r'[T ]'
+    r'(?P<hr>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2})(?P<fractional_sec>\.\d+)?'
+)
+_time_pattern = (r'(?P<hr>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2})(?P<fractional_sec>\.\d+)?')
 _date_re = re.compile(_date_pattern)
 _local_re = re.compile(_datetime_pattern)
 _utc_re = re.compile(_datetime_pattern + 'Z')
-_offset_re = re.compile(_datetime_pattern +
-    r'(?P<tz_hr>[+-]\d{2}):(?P<tz_min>\d{2})')
-
+_offset_re = re.compile(_datetime_pattern + r'(?P<tz_hr>[+-]\d{2}):(?P<tz_min>\d{2})')
+_time_re = re.compile(_time_pattern)
 
 def _is_null_element(element):
     for k in element.keys():
@@ -87,14 +90,35 @@ def _element_to_date(element):
     
     def parse_date(date_match):
         fields = date_match.groupdict(0)
-        year, month, day = [int(fields[x]) for x in
-           ("year", "month", "day")]
-        return datetime.date(year, month, day)
-    
+        year, month, day = [int(fields[x]) for x in ("year", "month", "day")]
+        return datetime.date(year, month, day)    
+
     match = _date_re.match(text)
     if match:
         return parse_date(match)
     raise Exception("Date [%s] not in known format" % text)
+
+
+def _element_to_time(element):
+    # expect ISO formatted dates
+    #
+    text = element.text
+    if not text:
+        return None
+
+    def parse_time(time_match):
+        fields = time_match.groupdict(0)
+        hr, min, sec = [int(fields[x]) for x in ("hr", "min", "sec")]
+        # use of decimal module here (rather than float) might be better
+        # here, if willing to require python 2.4 or higher
+        microsec = int(float(fields.get("fractional_sec", 0)) * 10**6)
+        return datetime.time(hr, min, sec, microsec)
+
+    match = _time_re.match(text)
+    if match:
+        return parse_time(match)
+
+    raise Exception("Time [%s] not in known format" % text)
 
 
 def _element_to_string(element):
@@ -501,6 +525,34 @@ class Date(BasePrimitive):
     @classmethod
     def add_to_schema(cls, added_params, nsmap):
         pass
+
+
+class Time(BasePrimitive):
+
+    @classmethod
+    @nillable
+    def to_xml(cls, value, name='retval', nsmap=ns):
+        if isinstance(value, datetime.time):
+            value = value.isoformat()
+        e = _generic_to_xml(value, name, cls, nsmap)
+        return e
+
+    @classmethod
+    def from_xml(cls, element):
+        return _element_to_time(element)
+
+    @classmethod
+    def get_datatype(cls, nsmap=None):
+        return _get_datatype(cls, 'time', nsmap)
+
+    @classmethod
+    def get_namespace_id(cls):
+        return 'xs'
+
+    @classmethod
+    def add_to_schema(cls, added_params, nsmap):
+        pass
+
 
 class Float(BasePrimitive):
 

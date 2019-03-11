@@ -25,7 +25,7 @@ import traceback
 
 from soaplib.etimport import ElementTree
 from soaplib.serializers.clazz import ClassSerializer, ClassSerializerMeta
-from soaplib.serializers.primitive import String, DateTime, Date, Integer, Int, Long, Boolean, Float, Array, Any, Repeating, Optional, Decimal
+from soaplib.serializers.primitive import String, DateTime, Date, Time, Integer, Int, Long, Decimal, Double, Boolean, Float, Array, Any, Repeating, Optional
 from soaplib.serializers.binary import Attachment
 
 schnamespace = 'http://www.w3.org/2001/XMLSchema'
@@ -42,16 +42,18 @@ scelement = '%selement' % schqname
 scattr = '%sattribute' % schqname
 scany = '%sany' % schqname
 
-builtinobj = [String, DateTime, Date, Integer, Int, Long, Decimal, Boolean, Float, Array, Any, Attachment]
+builtinobj = [String, DateTime, Date, Time, Integer, Int, Long, Decimal, Double, Float, Boolean, Array, Any, Attachment]
 
 serializers = {
     'String': String,
     'DateTime': DateTime,
     'Date': Date,
+    'Time': Time,
     'Integer': Integer,
     'Int': Int,
     'Long': Long,
     'Decimal': Decimal,
+    'Double': Double,
     'Boolean': Boolean,
     'Float': Float,
     'Array': Array,
@@ -65,9 +67,11 @@ builtins = {
     '%sint' % schqname: Int,
     '%slong' % schqname: Long,
     '%sdecimal' % schqname: Decimal,
+    '%sfloat' % schqname: Float,
+    '%sdouble' % schqname: Double,
     '%sdateTime' % schqname: DateTime,
     '%sdate' % schqname: Date,
-    '%sfloat' % schqname: Float,
+    '%stime' % schqname: Time,
     '%sboolean' % schqname: Boolean,
     '%sbase64Binary' % schqname: Attachment,
 }
@@ -396,7 +400,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
     def write_imports(self, f):
         """ write the header python imports to f """
         f.write('from soaplib.serializers.clazz import ClassSerializer\n')
-        f.write('from soaplib.serializers.primitive import String, DateTime, Date, Integer, Int, Long, Decimal, Boolean, Float, Array, Any, Repeating, Optional\n')
+        f.write('from soaplib.serializers.primitive import String, DateTime, Date, Time, Integer, Int, Long, Decimal, Double, Float, Boolean, Any, Array, Repeating, Optional\n')
         f.write('from soaplib.serializers.binary import Attachment\n\n')
         
     def write_class(self, writedict, klass, f):

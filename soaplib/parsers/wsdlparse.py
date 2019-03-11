@@ -38,7 +38,7 @@ soapqname = "{%s}" % soapns
 
 headerstr = '''
 from soaplib.serializers.clazz import ClassSerializer
-from soaplib.serializers.primitive import String, DateTime, Date, Integer, Int, Long, Boolean, Float, Array, Any, Decimal, Optional
+from soaplib.serializers.primitive import String, DateTime, Date, Time, Integer, Int, Long, Boolean, Any, Array, Decimal, Double, Float, Optional
 from soaplib.serializers.binary import Attachment
 from soaplib.wsgi_soap import SimpleWSGISoapApp
 from soaplib.service import soapmethod
