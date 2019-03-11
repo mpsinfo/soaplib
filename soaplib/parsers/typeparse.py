@@ -199,8 +199,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             try:
                 children = element.xpath('./xs:sequence/xs:element', namespaces={'xs': schnamespace})
                 children.extend(element.xpath('./xs:choice/xs:element', namespaces={'xs': schnamespace}))
-                if len(children) == 1 and (children[0].get('maxOccurs') == 'unbounded' or 
-                    children[0].get('maxOccurs') > '1'):
+                if len(children) == 1 and (children[0].get('maxOccurs') == 'unbounded' or children[0].get('maxOccurs', '1') != '1'):
                     child = children[0]
                     typelist = self.extract_complex(child, inuse=True)
                     #items in a soaplib Array are named according to their datatype, 
@@ -216,6 +215,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             for child in element.getchildren():
                 typelist += self.extract_complex(child, inuse=True)
             for (typename, typevalue) in typelist:
+                klass.types_ordered.append(typename)
                 setattr(klass.types, typename, typevalue)
             #reassign metaclass: as dynamically building the class
             #means the metaclass code is run before the types have
@@ -266,8 +266,8 @@ during the parse: \n%s" % "\n".join(self.unsupported)
                     traceback.print_exc()
                     return []
             #check for array
-            maxoccurs = element.get('maxOccurs')
-            if maxoccurs > '1' or maxoccurs == 'unbounded':
+            maxoccurs = element.get('maxOccurs', '1')
+            if maxoccurs != '1' or maxoccurs == 'unbounded':
                 return [(element.get('name'), Repeating(serializer))]
             else:
                 if minoccurs == '0':
@@ -338,7 +338,7 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             klass = self.ctypes["{%s}%s" % (self.tns, name)]
         except:
             typeklass = new.classobj('types', (), {})
-            klass = new.classobj(name, (ClassSerializer, object), {'types': typeklass, '__name__': name})
+            klass = new.classobj(name, (ClassSerializer, object), {'types': typeklass, '__name__': name, 'types_ordered': []})
             self.ctypes["{%s}%s" % (self.tns, name)] = klass
         if not getattr(klass, 'inuse', False):
             klass.inuse = inuse

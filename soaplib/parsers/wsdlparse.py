@@ -18,6 +18,7 @@
 
 import codecs
 import new
+import keyword
 import traceback
 import os.path as path
 from string import Template
@@ -292,8 +293,10 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             intype = self.ctypes[inmessage.ctype]
         if intype is not None:
             #messages can be empty
-            inparams = [(k,v) for (k,v) in intype.types.__dict__.items() 
-                    if not k.startswith('_')]
+            inparams = []
+            keys = intype.types_ordered
+            for k in keys:
+                inparams.append((k, intype.types.__dict__[k]))
         outparams = []
         outtype = None
         outmessage = None
@@ -386,11 +389,14 @@ during the parse: \n%s" % "\n".join(self.unsupported)
             if method.outMessage is not None:
                 if method.outMessage.name != '%sResponse'%method.name:
                     paramlist += ['_outMessage="%s"' % method.outMessage.name]
+            inkeywords = dict((('_' + k, k) for (k, _) in inmsgparams if keyword.iskeyword(k)))
+            if inkeywords:
+                paramlist += [ '_inVariableNames = %s' % inkeywords]
             f.write("%s@soapmethod(%s)\n" % (
                 self.spacer, ', '.join(paramlist)
             ))
             arglist = ['self']
-            arglist += [ k for (k,v) in inmsgparams ]
+            arglist += [ k if not keyword.iskeyword(k) else '_' + k  for (k,v) in inmsgparams ]
             f.write("%sdef %s(%s):\n" % (
                 self.spacer, method.name,
                 ", ".join(arglist)
